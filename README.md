@@ -15,16 +15,18 @@ low-data, WhatsApp-native, and honest about the way work really arrives.
 > you'd use in a WhatsApp message — it makes sure it actually happens.
 
 <!-- The repo owner is "opeblow". Keep the two URLs below in sync. -->
-[![CI](https://github.com/opeblow/next-africa/actions/workflows/ci.yml/badge.svg)](https://github.com/opeblow/next-africa/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-5c4de2.svg)](./LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
-[![Made in Africa](https://img.shields.io/badge/made%20in-Africa-yellow.svg)](#the-african-problem)
-[![React](https://img.shields.io/badge/React-19-61dafb.svg?logo=react&logoColor=white)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-8-646cff.svg?logo=vite&logoColor=white)](https://vitejs.dev)
-[![Node.js](https://img.shields.io/badge/Node.js-24-339933.svg?logo=nodedotjs&logoColor=white)](https://nodejs.org)
-[![Express](https://img.shields.io/badge/Express-5-000000.svg?logo=express&logoColor=white)](https://expressjs.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169e1.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org)
-[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991.svg?logo=openai&logoColor=white)](https://openai.com)
+<p align="center">
+  <a href="https://github.com/opeblow/next-africa/actions/workflows/ci.yml"><img src="https://github.com/opeblow/next-africa/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-5c4de2.svg" alt="License: MIT" /></a>
+  <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" /></a>
+  <a href="#the-african-problem"><img src="https://img.shields.io/badge/made%20in-Africa-yellow.svg" alt="Made in Africa" /></a>
+  <a href="https://react.dev"><img src="https://img.shields.io/badge/React-19-61dafb.svg?logo=react&logoColor=white" alt="React" /></a>
+  <a href="https://vitejs.dev"><img src="https://img.shields.io/badge/Vite-8-646cff.svg?logo=vite&logoColor=white" alt="Vite" /></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-24-339933.svg?logo=nodedotjs&logoColor=white" alt="Node.js" /></a>
+  <a href="https://expressjs.com"><img src="https://img.shields.io/badge/Express-5-000000.svg?logo=express&logoColor=white" alt="Express" /></a>
+  <a href="https://www.postgresql.org"><img src="https://img.shields.io/badge/PostgreSQL-17-4169e1.svg?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+  <a href="https://openai.com"><img src="https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991.svg?logo=openai&logoColor=white" alt="OpenAI" /></a>
+</p>
 
 ---
 
