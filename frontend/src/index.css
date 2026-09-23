@@ -918,3 +918,266 @@
   color: #5b5b6b;
 }
 
+/* Phone refinements --------------------------------------------------------- */
+
+@media (max-width: 700px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .app-nav {
+    gap: 8px;
+    padding: 0 14px;
+  }
+
+  .app-nav nav {
+    gap: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-nav nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-nav nav button {
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .brand {
+    font-size: 16px;
+  }
+
+  .capture-button {
+    padding: 12px 14px;
+  }
+
+  .dashboard-head {
+    padding: 38px 18px 26px;
+  }
+
+  .dashboard-head h1,
+  .chat-heading h1,
+  .settings-shell h1 {
+    font-size: 30px;
+  }
+
+  .board {
+    padding: 0 18px 56px;
+    gap: 20px;
+  }
+
+  .thread {
+    margin-top: 24px;
+  }
+
+  .chat-shell {
+    padding-top: 30px;
+  }
+
+  .settings-shell {
+    padding: 40px 18px 64px;
+  }
+
+  .settings-back {
+    margin-bottom: 30px;
+  }
+
+  .copilot-viewport {
+    padding: 26px 16px 60px;
+  }
+
+  .copilot-header-bar {
+    margin-bottom: 14px;
+  }
+
+  .phone-frame-content {
+    padding: 16px;
+    min-height: 440px;
+  }
+
+  .hero-copy {
+    padding: 44px 28px 0;
+  }
+
+  .hero-actions {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .availability {
+    flex-wrap: wrap;
+    margin-top: 34px;
+  }
+
+  .trust-strip {
+    flex-wrap: wrap;
+    text-align: center;
+  }
+
+  .section {
+    padding: 64px 18px;
+  }
+
+  .steps article {
+    min-height: 0;
+  }
+
+  .local {
+    padding-top: 30px;
+  }
+
+  .message-stack {
+    height: 230px;
+  }
+
+  .waitlist {
+    padding: 64px 18px;
+  }
+
+  footer {
+    text-align: center;
+    justify-content: center;
+  }
+
+  .auth-layout {
+    margin: 24px auto 48px;
+    padding: 0 16px;
+  }
+
+  .auth-card {
+    padding: 26px 22px;
+  }
+
+  .auth-header {
+    padding: 0 16px;
+    height: 68px;
+  }
+
+  .capture-box {
+    padding: 10px;
+  }
+
+  .capture-actions {
+    flex-wrap: wrap;
+  }
+
+  .capture-actions button[type="submit"] {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero h1 {
+    font-size: 38px;
+    letter-spacing: -2px;
+  }
+
+  .hero-shell {
+    min-height: 640px;
+  }
+
+  .subcopy {
+    max-width: 100%;
+  }
+
+  .pill {
+    font-size: 8px;
+  }
+
+  .section h2,
+  .waitlist h2 {
+    font-size: 30px;
+    letter-spacing: -1.4px;
+  }
+
+  .auth-story h1 {
+    font-size: 40px;
+    letter-spacing: -2.2px;
+  }
+
+  .settings-intro {
+    font-size: 13px;
+  }
+
+  .results-table-wrap {
+    overflow-x: auto;
+  }
+
+  .loop-banner {
+    top: 76px;
+    padding: 10px 12px;
+  }
+
+  .loop-step-btn {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+
+  .loop-banner-inner {
+    gap: 10px;
+  }
+}
+
+/* =========================================================
+   Mobile friendliness pass
+   ========================================================= */
+@media (max-width: 800px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* Phone mockup: flow below the hero copy instead of a tiny
+     rotated badge pinned far down the right edge. */
+  .phone-wrap {
+    position: static;
+    top: auto;
+    right: auto;
+    transform: rotate(0deg);
+    margin: 32px auto 0;
+  }
+}
+
+@media (max-width: 700px) {
+  /* 44px minimum touch targets */
+  .app-nav nav button,
+  .profile-button,
+  .nav-cta,
+  .hero .primary,
+  .btn-primary-purple,
+  .btn-secondary-light {
+    min-height: 44px;
+  }
+  .profile-button {
+    min-width: 44px;
+  }
+  .capture-box button,
+  .capture-actions button,
+  .copilot-btn-group button,
+  .projects-tab-btn {
+    min-height: 40px;
+  }
+  .capture-box button {
+    padding: 11px 12px;
+    font-size: 12px;
+  }
+  .projects-tab-btn {
+    padding: 6px 10px;
+  }
+  .app-nav nav button {
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .phone-wrap {
+    width: 240px;
+    height: 500px;
+  }
+  .hero h1 {
+    font-size: 32px;
+  }
+}
+
