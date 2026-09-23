@@ -107,7 +107,7 @@ let committed = 0;
 for (const file of files) {
   const msg = MESSAGES[file] || `feat: add ${file}`;
   execSync(`git add -- "${file}"`, { stdio: "inherit" });
-  execSync(`git commit -m "${msg.replace(/\"/g, '\\"')}"`, { stdio: "inherit" });
+  execSync(`git commit -m "${msg.replace(/"/g, '\\"')}"`, { stdio: "inherit" });
   committed++;
   console.log(`✓ ${committed}/${files.length}: ${file}`);
 }
