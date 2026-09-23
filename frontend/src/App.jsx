@@ -1562,7 +1562,7 @@ function AuthPage({ onBack, onAuthenticated }) {
 /* =========================================================
    Landing Page (Home)
    ========================================================= */
-function PhoneMockup({ onTryInteractive }) {
+function PhoneMockup() {
   return (
     <div className="phone-wrap" aria-label="NEXT Africa app preview">
       <div className="phone">
