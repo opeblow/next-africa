@@ -1,0 +1,7 @@
+# Optional single-origin API proxy (avoids CORS entirely).
+# Uncomment and point at your Node API host if you prefer same-origin requests.
+# Keep it ABOVE the SPA fallback so it matches first.
+# /api/*    https://your-api-host.example.com/api/:splat    200
+
+# SPA fallback: let the client handle unknown paths. Keep this LAST.
+/*    /index.html   200
