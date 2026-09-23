@@ -1,0 +1,14 @@
+# GitHub code owners for NEXT Africa.
+# Replace the handles below with the real GitHub usernames if they differ.
+
+# Default owner — repo maintainer / Developer.
+* @opeblow
+
+# Documentation, product copy and scope live with the Product Manager.
+*.md @oluwatamilore-paul-olubanwo @opeblow
+/docs/ @oluwatamilore-paul-olubanwo
+
+# Backend, CI/CD and infrastructure stay with the Developer.
+/backend/ @opeblow
+/.github/ @opeblow
+/scripts/ @opeblow
