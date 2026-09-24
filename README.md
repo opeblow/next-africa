@@ -455,7 +455,7 @@ claiming, and the split is confirmed in writing by both members.
 - [ ] Demo video (2–3 min) telling the *African problem → our solution* story
 - [ ] Slide deck / one-pager exported as PDF
 - [ ] Both teammates listed as authors on the submission
-- [ ] Devpost/Devfolio form fields completed and links verified
+
 
 ### Attribution & IP
 
