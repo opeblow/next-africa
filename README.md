@@ -467,7 +467,7 @@ claiming, and the split is confirmed in writing by both members.
 
 ### Communication
 
-- **Primary channel:** _(add WhatsApp / Slack / Discord link here)_
+
 - **Repo:** <https://github.com/opeblow/next-africa>
 - **Contacts:** Mobolaji Opeyemi Bolatito (Developer) · Oluwatamilore Paul Olubanwo (Product Manager)
 
