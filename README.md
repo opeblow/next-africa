@@ -1,33 +1,15 @@
 ﻿# NEXT Africa — a personal execution copilot
 
+## Demo Video
+
+**[▶ Watch demo video](https://www.youtube.com/watch?v=biDLEFhlyhE)**
+
 NEXT Africa turns the messy, natural-language promises of everyday life ("send the
 proposal before the Thursday meeting", "remind me to follow up with Dana") into
 structured **commitments** — then helps you actually finish them.
 
 Built for the **Borderless Bytes Hackathon** and designed Africa-first: mobile-first,
 low-data, designed for pasted conversations, and honest about the way work really arrives.
-
-## Demo Video
-
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=biDLEFhlyhE">
-    <img src="https://img.youtube.com/vi/biDLEFhlyhE/maxresdefault.jpg" alt="Watch the NEXT Africa demo video" width="640" />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=biDLEFhlyhE"><strong>▶ Watch the demo video on YouTube</strong></a>
-</p>
-
-<iframe
-  width="640"
-  height="360"
-  src="https://www.youtube.com/embed/biDLEFhlyhE"
-  title="NEXT Africa demo video"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowfullscreen
-></iframe>
 
 <p align="center">
   <img src="./docs/assets/002-hero.gif" alt="NEXT Africa hero — the repeatedly shown promise, captured and followed through" width="640" />
