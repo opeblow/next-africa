@@ -471,6 +471,29 @@ claiming, and the split is confirmed in writing by both members.
 - **Repo:** <https://github.com/opeblow/next-africa>
 - **Contacts:** Mobolaji Opeyemi Bolatito (Developer) · Oluwatamilore Paul Olubanwo (Product Manager)
 
+## Demo Video
+
+<p align="center">
+  <a href="https://youtu.be/biDLEFhlyhE">
+    <img src="https://img.youtube.com/vi/biDLEFhlyhE/maxresdefault.jpg" alt="NEXT Africa demo video thumbnail" width="640" />
+  </a>
+</p>
+
+**[▶ Watch the demo on YouTube](https://youtu.be/biDLEFhlyhE)**
+
+<iframe
+  width="720"
+  height="405"
+  src="https://www.youtube.com/embed/biDLEFhlyhE"
+  title="NEXT Africa demo video"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowfullscreen
+></iframe>
+
+The walkthrough follows the demo script: capture a promise → the dashboard → the
+nudges → projects → insights. Script: [`docs/DEMO-SCRIPT.md`](./docs/DEMO-SCRIPT.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md). Please read the
