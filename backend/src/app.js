@@ -10,7 +10,10 @@ import { requireAuth } from "./middleware/auth.js";
 import { requestId } from "./middleware/requestId.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
-import { extractCommitments, transcribeAudio } from "./llm/extract.js";
+import { extractCommitments, transcribeAudio, draftFollowUp } from "./llm/extract.js";
+import { readCaptureFile } from "./lib/capture-file.js";
+import { getNudges } from "./lib/nudges.js";
+import { mountPushRoutes } from "./lib/push.js";
 import { openapiSpec, redocHtml } from "./openapi.js";
 import { parsePagination, encodeCursor } from "./lib/pagination.js";
 import { logger } from "./lib/logger.js";
@@ -140,12 +143,19 @@ const nextStepPrompt = (saved) =>
     : "No new commitments were found in that message.";
 
 function captureFailed(req, res, error) {
+  if (error.status === 400) return res.status(400).json({ error: error.message });
   logger.error({ err: error, requestId: req.id }, "Capture failed");
-  if (error.message.includes("OPENAI_API_KEY")) return res.status(503).json({ error: "Capture is not configured yet" });
+  if (error.message.includes("OPENAI_API_KEY")) return res.status(503).json({ error: "AI capture and drafting are not available yet. Your saved commitments are safe." });
   return res.status(500).json({ error: "Could not capture commitments" });
 }
 
 const types = ["task", "deadline", "meeting", "reminder"];
+
+async function captureContext(userId, timezone) {
+  const user = await query("SELECT timezone FROM users WHERE id = $1", [userId]);
+  const { rows } = await query("SELECT id, title, type, due_date, status FROM commitments WHERE user_id = $1 AND status <> 'done' ORDER BY updated_at DESC LIMIT 100", [userId]);
+  return { existing: rows, timezone: timezone || user.rows[0]?.timezone || "Africa/Lagos" };
+}
 
 async function persistCapture(userId, rawText, extracted) {
   const client = await pool.connect();
@@ -160,7 +170,11 @@ async function persistCapture(userId, rawText, extracted) {
       const parsedDue = item.due_date ? new Date(item.due_date) : null;
       const dueDate = parsedDue && !Number.isNaN(parsedDue.valueOf()) ? parsedDue : null;
       let linkedId = null;
-      if (item.linked_to_title) {
+      if (item.linked_commitment_id) {
+        const linked = await client.query("SELECT id FROM commitments WHERE user_id = $1 AND id = $2 AND status <> 'done'", [userId, item.linked_commitment_id]);
+        linkedId = linked.rows[0]?.id ?? null;
+      }
+      if (!linkedId && item.linked_to_title) {
         const linked = await client.query(
           "SELECT id FROM commitments WHERE user_id = $1 AND status = 'open' AND lower(title) = lower($2) ORDER BY created_at DESC LIMIT 1",
           [userId, item.linked_to_title]
@@ -207,7 +221,7 @@ async function persistCapture(userId, rawText, extracted) {
 app.post("/api/capture", captureLimiter, requireAuth, validateBody(captureTextSchema), async (req, res) => {
   const { text } = req.body;
   try {
-    const extracted = await extractCommitments(text);
+    const extracted = await extractCommitments(text, await captureContext(req.user_id, req.body.timezone));
     const { saved, conflict } = await persistCapture(req.user_id, text, extracted);
     return res.status(201).json({
       reply: extracted.reply,
@@ -224,11 +238,10 @@ app.post("/api/capture/file", captureLimiter, requireAuth, validateBody(captureF
   const { filename, content_base64: base64 } = req.body;
   if (base64.length > 12_000_000) return res.status(413).json({ error: "That file is too large (12 MB max)" });
   try {
-    const text = Buffer.from(base64, "base64").toString("utf8").replaceAll("\u0000", "").trim();
-    if (text.length < 3) return badRequest(res, "That file had no readable text");
-    const rawText = text.slice(0, 20000);
-    const extracted = await extractCommitments(`Content of file "${filename}":\n${rawText}`);
-    const { saved, conflict } = await persistCapture(req.user_id, rawText, extracted);
+    const file = await readCaptureFile(filename, base64);
+    const context = await captureContext(req.user_id, req.body.timezone);
+    const extracted = await extractCommitments(file.text, { ...context, image: file.image });
+    const { saved, conflict } = await persistCapture(req.user_id, file.image ? `Image: ${filename}` : file.text, extracted);
     return res.status(201).json({
       reply: extracted.reply,
       filename,
@@ -246,7 +259,7 @@ app.post("/api/capture/voice", captureLimiter, requireAuth, validateBody(capture
   if (base64.length > 20_000_000) return res.status(413).json({ error: "That voice note is too large (15 MB max)" });
   try {
     const transcript = await transcribeAudio(base64, mimeType);
-    const extracted = await extractCommitments(transcript);
+    const extracted = await extractCommitments(transcript, await captureContext(req.user_id, req.body.timezone));
     const { saved, conflict } = await persistCapture(req.user_id, transcript, extracted);
     return res.status(201).json({
       reply: extracted.reply,
@@ -295,22 +308,16 @@ app.get("/api/dashboard", requireAuth, async (req, res) => {
   try {
     const [today, waiting, all] = await Promise.all([
       query(
-        "SELECT * FROM commitments WHERE user_id = $1 AND status = 'open' AND (due_date IS NULL OR due_date < CURRENT_DATE + interval '2 days') ORDER BY due_date ASC NULLS LAST, created_at DESC",
+        "SELECT * FROM commitments WHERE user_id = $1 AND status = 'open' AND (due_date IS NULL OR due_date < ((date_trunc('day', now() AT TIME ZONE (SELECT timezone FROM users WHERE id = $1)) + interval '1 day') AT TIME ZONE (SELECT timezone FROM users WHERE id = $1))) ORDER BY due_date ASC NULLS LAST, created_at DESC",
         [req.user_id]
       ),
       query("SELECT * FROM commitments WHERE user_id = $1 AND status = 'waiting' ORDER BY created_at DESC", [req.user_id]),
       query("SELECT * FROM commitments WHERE user_id = $1 ORDER BY created_at ASC", [req.user_id]),
     ]);
-    const groups = new Map();
-    for (const commitment of all.rows) {
-      const key = commitment.linked_commitment_id ?? commitment.id;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(commitment);
-    }
     return res.json({
       today: today.rows,
       waitingFor: waiting.rows,
-      projects: [...groups.entries()].map(([rootCommitmentId, commitments]) => ({ rootCommitmentId, commitments })),
+      projects: commitmentChains(all.rows).map(({ root, members }) => ({ rootCommitmentId: root.id, commitments: members })),
     });
   } catch (error) {
     logger.error({ err: error, requestId: req.id }, "Dashboard failed");
@@ -319,9 +326,10 @@ app.get("/api/dashboard", requireAuth, async (req, res) => {
 });
 
 app.patch("/api/commitments/:id", requireAuth, validateBody(commitmentStatusSchema), async (req, res) => {
-  const { status } = req.body;
+  const { status, title, due_date } = req.body;
+  if (!Object.keys(req.body).length) return badRequest(res, "Choose a title, date or status to update");
   try {
-    const result = await query("UPDATE commitments SET status = $1 WHERE id = $2 AND user_id = $3 RETURNING *", [status, req.params.id, req.user_id]);
+    const result = await query("UPDATE commitments SET status = COALESCE($1, status), title = COALESCE($2, title), due_date = CASE WHEN $3 THEN $4::timestamptz ELSE due_date END WHERE id = $5 AND user_id = $6 RETURNING *", [status ?? null, title ?? null, Object.hasOwn(req.body, "due_date"), due_date ?? null, req.params.id, req.user_id]);
     if (!result.rowCount) return res.status(404).json({ error: "Commitment not found" });
     return res.json({ commitment: result.rows[0] });
   } catch (error) {
@@ -332,7 +340,7 @@ app.patch("/api/commitments/:id", requireAuth, validateBody(commitmentStatusSche
 
 app.get("/api/settings", requireAuth, async (req, res) => {
   try {
-    const result = await query("SELECT proactivity_level FROM users WHERE id = $1", [req.user_id]);
+    const result = await query("SELECT proactivity_level, timezone FROM users WHERE id = $1", [req.user_id]);
     if (!result.rowCount) return res.status(404).json({ error: "User not found" });
     return res.json(result.rows[0]);
   } catch (error) {
@@ -342,9 +350,10 @@ app.get("/api/settings", requireAuth, async (req, res) => {
 });
 
 app.patch("/api/settings", requireAuth, validateBody(settingsSchema), async (req, res) => {
-  const { proactivity_level: level } = req.body;
+  const { proactivity_level: level, timezone } = req.body;
+  if (!level && !timezone) return badRequest(res, "Choose a setting to update");
   try {
-    const result = await query("UPDATE users SET proactivity_level = $1 WHERE id = $2 RETURNING proactivity_level", [level, req.user_id]);
+    const result = await query("UPDATE users SET proactivity_level = COALESCE($1, proactivity_level), timezone = COALESCE($2, timezone) WHERE id = $3 RETURNING proactivity_level, timezone", [level ?? null, timezone ?? null, req.user_id]);
     if (!result.rowCount) return res.status(404).json({ error: "User not found" });
     return res.json(result.rows[0]);
   } catch (error) {
@@ -403,41 +412,23 @@ app.get("/api/projects", requireAuth, async (req, res) => {
 });
 
 app.get("/api/nudges", requireAuth, async (req, res) => {
-  try {
-    const [persisted, dueSoon, waiting, resolvedKeys] = await Promise.all([
-      query("SELECT id, type, message, commitment_id, source_key, created_at FROM nudges WHERE user_id = $1 AND status = 'open' ORDER BY created_at DESC", [req.user_id]),
-      query("SELECT id, title, due_date FROM commitments WHERE user_id = $1 AND status = 'open' AND due_date IS NOT NULL AND due_date <= now() + interval '2 days' ORDER BY due_date", [req.user_id]),
-      query("SELECT id, title FROM commitments WHERE user_id = $1 AND status = 'waiting' ORDER BY created_at DESC", [req.user_id]),
-      query("SELECT source_key FROM nudges WHERE user_id = $1 AND status <> 'open' AND source_key IS NOT NULL", [req.user_id]),
-    ]);
-    const resolved = new Set(resolvedKeys.rows.map((r) => r.source_key));
-    const DAY = 864e5;
-    const nudges = persisted.rows.map((row) => ({
-      id: row.id,
-      type: row.type,
-      message: row.message,
-      commitmentId: row.commitment_id,
-      primary: { label: "Got it" },
-      secondary: { label: "Later" },
-    }));
-    for (const c of dueSoon.rows) {
-      const key = `due:${c.id}`;
-      if (resolved.has(key)) continue;
-      const diff = Math.ceil((new Date(c.due_date).getTime() - Date.now()) / DAY);
-      const when = diff <= 0 ? "due today" : `due in ${diff} day${diff === 1 ? "" : "s"}`;
-      nudges.push({ id: key, type: "due", message: `“${c.title}” is ${when}. Want to start it now?`, commitmentId: c.id, primary: { label: "Plan it now" }, secondary: { label: "Later" } });
-    }
-    for (const c of waiting.rows) {
-      const key = `waiting:${c.id}`;
-      if (resolved.has(key)) continue;
-      nudges.push({ id: key, type: "waiting", message: `Still waiting on “${c.title}”. Want to follow up?`, commitmentId: c.id, primary: { label: "Follow up" }, secondary: { label: "Not now" } });
-    }
-    return res.json({ nudges });
-  } catch (error) {
-    logger.error({ err: error, requestId: req.id }, "Nudges failed");
-    return res.status(500).json({ error: "Could not load nudges" });
-  }
+  res.json({ nudges: await getNudges(req.user_id) });
 });
+
+app.get("/api/commitments/:id", requireAuth, async (req, res) => {
+  const { rows } = await query("SELECT * FROM commitments WHERE id = $1 AND user_id = $2", [req.params.id, req.user_id]);
+  if (!rows.length) return res.status(404).json({ error: "Commitment not found" });
+  res.json({ commitment: rows[0] });
+});
+app.post("/api/commitments/:id/draft", captureLimiter, requireAuth, async (req, res) => {
+  const { rows } = await query("SELECT id, title, raw_input, due_date, status, linked_commitment_id FROM commitments WHERE id = $1 AND user_id = $2", [req.params.id, req.user_id]);
+  if (!rows.length) return res.status(404).json({ error: "Commitment not found" });
+  try {
+    const context = await query("SELECT title, due_date, status FROM commitments WHERE user_id = $1 AND (id = $2 OR linked_commitment_id = $3) LIMIT 10", [req.user_id, rows[0].linked_commitment_id, rows[0].id]);
+    res.json({ draft: await draftFollowUp(rows[0], context.rows), sent: false });
+  } catch (error) { captureFailed(req, res, error); }
+});
+mountPushRoutes(app);
 
 app.post("/api/nudges/:id/action", requireAuth, validateBody(nudgeActionSchema), async (req, res) => {
   const { action } = req.body;

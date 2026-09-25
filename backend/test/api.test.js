@@ -9,6 +9,8 @@ process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || "test-key";
 
 const realFetch = globalThis.fetch;
 let nextExtraction = { reply: "ok", commitments: [] };
+let lastExtractionRequest;
+let nextDraft = "Hi, just checking in on the proposal. Let me know when you have an update.";
 let nextTranscription = "voice note transcript";
 
 globalThis.fetch = (url, init) => {
@@ -21,6 +23,9 @@ globalThis.fetch = (url, init) => {
     );
   }
   if (typeof url === "string" && url.startsWith("https://api.openai.com")) {
+    const request = JSON.parse(init.body);
+    if (!request.tools) return Promise.resolve(new Response(JSON.stringify({ choices: [{ message: { content: nextDraft } }] }), { status: 200 }));
+    lastExtractionRequest = request;
     return Promise.resolve(
       new Response(
         JSON.stringify({
@@ -28,7 +33,7 @@ globalThis.fetch = (url, init) => {
             {
               message: {
                 tool_calls: [
-                  { function: { name: "record_commitments", arguments: JSON.stringify(nextExtraction) } },
+                  { function: { name: "record_commitments", arguments: JSON.stringify({ ...nextExtraction, commitments: nextExtraction.commitments.map(c => ({ ...c, due_text: c.due_text ?? c.due_date })) }) } },
                 ],
               },
             },
@@ -316,8 +321,10 @@ test("nudges: due/waiting computed, resolve works for persisted and computed", a
   const due = nudges.body.nudges.find((n) => n.type === "due");
   const waiting = nudges.body.nudges.find((n) => n.type === "waiting");
   assert.ok(due);
-  assert.ok(waiting);
-  assert.match(due.message, /due in 1 day/);
+  assert.equal(waiting, undefined, "A new waiting item must not trigger an immediate follow-up");
+  await pool.query("INSERT INTO commitments(user_id, raw_input, title, type, status, updated_at) VALUES ($1,'test','Older waiting item','task','waiting',now() - interval '3 days')", [signup.user.id]);
+  assert.ok((await api("/api/nudges", { token })).body.nudges.find(n => n.type === "waiting"));
+  assert.match(due.message, /due in (1 day|24 hours)/);
 
   const missingAction = await api("/api/nudges/00000000-0000-0000-0000-000000000000/action", { method: "POST", token, body: { action: "resolved" } });
   assert.equal(missingAction.status, 404);
@@ -410,4 +417,97 @@ test("commitments paginate with a stable cursor and bounded pages", async () => 
 
   const pageOfOne = await api("/api/commitments?limit=0", { token });
   assert.equal(pageOfOne.body.commitments.length, 1, "limit floors at 1");
+});
+
+test("capture passes private project context and saved timezone; links only owned IDs", async () => {
+  const { body: user } = await api("/api/auth/signup", { method: "POST", body: { name: "Context", email: email(), password: "password123" } });
+  createdUserIds.push(user.user.id);
+  const token = user.token;
+  assert.equal((await api("/api/settings", { method: "PATCH", token, body: { timezone: "Africa/Nairobi" } })).status, 200);
+  assert.equal((await api("/api/settings", { method: "PATCH", token, body: { timezone: "Invalid/Zone" } })).status, 400);
+  nextExtraction = { reply: "Saved", commitments: [{ title: "Acme proposal", type: "task", due_date: null, linked_to_title: null }] };
+  const first = await api("/api/capture", { method: "POST", token, body: { text: "Prepare Acme proposal" } });
+  const root = first.body.commitments[0];
+  nextExtraction = { reply: "Linked", commitments: [{ title: "Follow up with Acme", type: "task", due_date: null, linked_commitment_id: root.id }] };
+  const second = await api("/api/capture", { method: "POST", token, body: { text: "Follow up about that proposal" } });
+  assert.equal(second.body.commitments[0].linked_commitment_id, root.id);
+  assert.match(lastExtractionRequest.messages[0].content, /Africa\/Nairobi/);
+  assert.ok(lastExtractionRequest.messages[0].content.includes(root.id));
+  const { body: other } = await api("/api/auth/signup", { method: "POST", body: { name: "Other", email: email(), password: "password123" } });
+  createdUserIds.push(other.user.id);
+  const foreign = await api("/api/capture", { method: "POST", token: other.token, body: { text: "Another task" } });
+  assert.equal(foreign.body.commitments[0].linked_commitment_id, null);
+  assert.ok(!lastExtractionRequest.messages[0].content.includes(root.id));
+  assert.equal((await api(`/api/commitments/${root.id}`, { token: other.token })).status, 404);
+});
+
+test("invalid AI dates fail without saving partial commitments; image uses vision content", async () => {
+  const { body: user } = await api("/api/auth/signup", { method: "POST", body: { name: "Files", email: email(), password: "password123" } });
+  createdUserIds.push(user.user.id);
+  const token = user.token;
+  nextExtraction = { reply: "Saved", commitments: [{ title: "Invalid date", type: "task", due_date: "someday" }] };
+  assert.equal((await api("/api/capture", { method: "POST", token, body: { text: "test" } })).status, 500);
+  assert.equal((await api("/api/commitments", { token })).body.commitments.length, 0);
+  nextExtraction = { reply: "Saved", commitments: [{ title: "Image commitment", type: "task", due_date: null }] };
+  const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZwoAAAAASUVORK5CYII=";
+  assert.equal((await api("/api/capture/file", { method: "POST", token, body: { filename: "screenshot.png", content_base64: png } })).status, 201);
+  assert.equal(lastExtractionRequest.messages[1].content[1].type, "image_url");
+  assert.equal((await api("/api/capture/file", { method: "POST", token, body: { filename: "fake.pdf", content_base64: Buffer.from("not a PDF").toString("base64") } })).status, 400);
+});
+
+test("drafts do not complete tasks; edits and explicit completion persist", async () => {
+  const { body: user } = await api("/api/auth/signup", { method: "POST", body: { name: "Work", email: email(), password: "password123" } });
+  createdUserIds.push(user.user.id);
+  const token = user.token;
+  nextExtraction = { reply: "Saved", commitments: [{ title: "Follow up on invoice", type: "task", due_date: null }] };
+  const capture = await api("/api/capture", { method: "POST", token, body: { text: "Follow up" } });
+  const item = capture.body.commitments[0];
+  const draft = await api(`/api/commitments/${item.id}/draft`, { method: "POST", token });
+  assert.equal(draft.body.sent, false);
+  assert.equal(draft.body.draft, nextDraft);
+  assert.equal((await api(`/api/commitments/${item.id}`, { token })).body.commitment.status, "open");
+  const edit = await api(`/api/commitments/${item.id}`, { method: "PATCH", token, body: { title: "Review invoice", due_date: "2026-10-01T15:00:00+03:00" } });
+  assert.equal(edit.body.commitment.due_date, "2026-10-01T12:00:00.000Z");
+  assert.equal((await api(`/api/commitments/${item.id}`, { method: "PATCH", token, body: { status: "done" } })).body.commitment.status, "done");
+});
+
+test("reminder preferences change horizons and snoozes expire", async () => {
+  const { body: user } = await api("/api/auth/signup", { method: "POST", body: { name: "Reminders", email: email(), password: "password123" } });
+  createdUserIds.push(user.user.id);
+  const token = user.token;
+  const { rows: [item] } = await pool.query("INSERT INTO commitments(user_id, raw_input, title, type, due_date) VALUES ($1,'test','Later deadline','task',now() + interval '5 days') RETURNING *", [user.user.id]);
+  assert.equal((await api("/api/nudges", { token })).body.nudges.length, 0);
+  await api("/api/settings", { method: "PATCH", token, body: { proactivity_level: "active" } });
+  assert.equal((await api("/api/nudges", { token })).body.nudges.length, 1);
+  const key = `due:${item.id}`;
+  await api(`/api/nudges/${key}/action`, { method: "POST", token, body: { action: "dismissed" } });
+  assert.equal((await api("/api/nudges", { token })).body.nudges.length, 0);
+  await pool.query("UPDATE nudges SET resolved_at = now() - interval '25 hours' WHERE user_id=$1", [user.user.id]);
+  assert.equal((await api("/api/nudges", { token })).body.nudges.length, 1);
+  await api("/api/settings", { method: "PATCH", token, body: { proactivity_level: "quiet" } });
+  assert.equal((await api("/api/nudges", { token })).body.nudges.length, 0);
+});
+
+test("background reminders deliver once per day, retry failures, and remove expired subscriptions", async () => {
+  const { dispatchReminders } = await import("../src/lib/push.js");
+  const webpush = (await import("web-push")).default;
+  const keys = webpush.generateVAPIDKeys();
+  process.env.VAPID_PUBLIC_KEY = keys.publicKey;
+  process.env.VAPID_PRIVATE_KEY = keys.privateKey;
+  process.env.VAPID_SUBJECT = "https://example.com";
+  const { body: user } = await api("/api/auth/signup", { method: "POST", body: { name: "Push", email: email(), password: "password123" } });
+  createdUserIds.push(user.user.id);
+  const token = user.token;
+  await pool.query("INSERT INTO commitments(user_id, raw_input, title, type, due_date) VALUES ($1,'private','Private client name','task',now())", [user.user.id]);
+  const sub = { endpoint: "https://fcm.googleapis.com/fcm/send/test-next", keys: { p256dh: keys.publicKey, auth: "a".repeat(22) } };
+  assert.equal((await api("/api/notifications/subscribe", { method: "POST", token, body: { ...sub, endpoint: "http://localhost/internal" } })).status, 400);
+  assert.equal((await api("/api/notifications/subscribe", { method: "POST", token, body: sub })).status, 200);
+  let sends = 0;
+  await dispatchReminders(async () => { throw Object.assign(new Error("retry"), { statusCode: 503 }); });
+  await dispatchReminders(async (_subscription, payload) => { sends++; assert.ok(!payload.includes("Private client name")); });
+  await dispatchReminders(async () => { sends++; });
+  assert.equal(sends, 1);
+  await pool.query("DELETE FROM push_deliveries WHERE endpoint=$1", [sub.endpoint]);
+  await dispatchReminders(async () => { throw Object.assign(new Error("expired"), { statusCode: 410 }); });
+  assert.equal((await pool.query("SELECT 1 FROM push_subscriptions WHERE endpoint=$1", [sub.endpoint])).rowCount, 0);
 });

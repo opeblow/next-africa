@@ -1,3 +1,4 @@
+import ReminderSettings from "./components/ReminderSettings.jsx";
 import { useEffect, useRef, useState } from "react";
 import { api } from "./lib/api.js";
 import { currentUser, userInitials, getGoal, saveGoal } from "./lib/session.js";
@@ -12,9 +13,9 @@ function ExecutionLoopBanner({ activeStep, onNavigate }) {
     { id: "chat", num: 1, label: "Goal Capture" },
     { id: "analysis", num: 2, label: "Understand & Analyse" },
     { id: "plan", num: 3, label: "Plan & Decide" },
-    { id: "execute", num: 4, label: "Execute" },
+    { id: "execute", num: 4, label: "Follow Through" },
     { id: "results", num: 5, label: "Review Results" },
-    { id: "complete", num: 6, label: "Task Complete" },
+    { id: "complete", num: 6, label: "Progress Summary" },
   ];
   const goalTitle = getGoal()?.title || "No goal captured yet";
 
@@ -24,7 +25,7 @@ function ExecutionLoopBanner({ activeStep, onNavigate }) {
         <div className="loop-brand-pill">
           <NextMark />
           <div>
-            <b>THE EXECUTION LOOP</b>
+            <b>YOUR FOLLOW-THROUGH PLAN</b>
             <span className="loop-sub"> · {goalTitle}</span>
           </div>
         </div>
@@ -169,6 +170,7 @@ function AppNav({ view, onNavigate }) {
                 localStorage.removeItem("next-user-id");
                 localStorage.removeItem("next-proactivity-level");
                 localStorage.removeItem("next-goal");
+                localStorage.removeItem("next-timezone");
                 setProfileOpen(false);
                 onNavigate("home");
               }}
@@ -297,12 +299,12 @@ function TaskAnalysisScreen({ onNavigate }) {
 
           <div className="copilot-prompt-box">
             <b>Next step:</b>
-            <p>I'll turn these into an ordered plan. Ready to see it?</p>
+            <p>Review these commitments and choose what to work on first.</p>
           </div>
 
           <div className="copilot-btn-group">
             <button className="btn-primary-purple" onClick={() => onNavigate("plan")}>
-              Build my plan →
+              Review my plan →
             </button>
             <button className="btn-secondary-light" onClick={() => onNavigate("chat")}>
               Add more
@@ -319,7 +321,7 @@ function TaskAnalysisScreen({ onNavigate }) {
    ========================================================= */
 function ExecutionPlanScreen({ onNavigate }) {
   const goal = getGoal();
-  const commitments = goal?.commitments ?? [];
+  const commitments = [...(goal?.commitments ?? [])].sort((a, b) => (a.due_date ? new Date(a.due_date).getTime() : Infinity) - (b.due_date ? new Date(b.due_date).getTime() : Infinity));
 
   return (
     <LoopShell view="plan" stage="STAGE 03 · PLAN" subtitle="Execution Plan" back="analysis" backLabel="Analysis" onNavigate={onNavigate}>
@@ -329,7 +331,7 @@ function ExecutionPlanScreen({ onNavigate }) {
         <div className="phone-frame-content">
           <div className="copilot-card">
             <h4 className="found-section-title" style={{ marginBottom: "14px" }}>
-              Here's the plan:
+              Choose your next step:
             </h4>
             {commitments.map((item, index) => (
               <div className="plan-step-item" key={item.id}>
@@ -351,7 +353,7 @@ function ExecutionPlanScreen({ onNavigate }) {
 
           <div className="copilot-btn-group">
             <button className="btn-primary-purple" onClick={() => onNavigate("execute")}>
-              Yes, start →
+              Open workspace →
             </button>
             <button className="btn-secondary-light" onClick={() => onNavigate("chat")}>
               Let me adjust
@@ -367,62 +369,76 @@ function ExecutionPlanScreen({ onNavigate }) {
    Screen 4: Execute (Live Copilot Runner)
    ========================================================= */
 function ExecuteScreen({ onNavigate }) {
-  const goal = getGoal();
-  const commitments = goal?.commitments ?? [];
-  const [progress, setProgress] = useState(0);
-
+  const [goal, setGoal] = useState(getGoal);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(() => Boolean(getGoal()));
+  const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [notice, setNotice] = useState("");
   useEffect(() => {
-    if (!commitments.length) return;
-    const timer = setInterval(() => setProgress((prev) => (prev < 100 ? Math.min(100, prev + 4) : prev)), 500);
-    return () => clearInterval(timer);
-  }, [commitments.length]);
-
-  const doneCount = commitments.length ? Math.min(commitments.length, Math.floor((progress / 100) * commitments.length)) : 0;
-  const current = commitments[Math.min(doneCount, Math.max(0, commitments.length - 1))];
-
+    const saved = getGoal();
+    if (!saved) return;
+    let cancelled = false;
+    Promise.all(saved.commitments.map(item => api(`/api/commitments/${item.id}`)))
+      .then(results => {
+        if (cancelled) return;
+        const next = { ...saved, commitments: results.map(r => r.commitment) };
+        saveGoal(next); setGoal(next); setLoading(false);
+      }).catch(err => { if (!cancelled) setError(err.message); });
+    return () => { cancelled = true; };
+  }, [reload]);
+  const commitments = goal?.commitments ?? [];
+  const done = commitments.filter(item => item.status === "done").length;
+  const update = async (item, body) => {
+    setBusy(true); setError("");
+    try {
+      const result = await api(`/api/commitments/${item.id}`, { method: "PATCH", body: JSON.stringify(body) });
+      const next = { ...goal, commitments: commitments.map(c => c.id === item.id ? result.commitment : c) };
+      saveGoal(next); setGoal(next);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  };
+  const prepare = async (item) => {
+    setBusy(true); setError(""); setDraft(""); setNotice("");
+    try { const result = await api(`/api/commitments/${item.id}/draft`, { method: "POST" }); setDraft(result.draft); }
+    catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  };
   return (
-    <LoopShell view="execute" stage="STAGE 04 · EXECUTE" subtitle="Working on it..." back="plan" backLabel="Plan" onNavigate={onNavigate}>
-      {!goal ? (
-        <LoopEmptyState onNavigate={onNavigate} />
-      ) : (
-        <div className="phone-frame-content">
-          <div className="copilot-card">
-            <div className="execute-radar-wrap">
-              <div className="radar-ring">
-                <span className="radar-icon">✦</span>
-              </div>
-              <h3 className="execute-title">
-                {progress >= 100 ? "All steps complete." : `Working on “${current?.title ?? goal.title}”...`}
-              </h3>
-              <span className="execute-percent">{progress}%</span>
-
-              <div className="execute-progress-track">
-                <div className="execute-progress-bar" style={{ width: `${progress}%` }}></div>
-              </div>
-            </div>
-
-            <div className="execute-checklist" style={{ marginTop: "18px" }}>
-              {commitments.map((item, index) => (
-                <div className={`checklist-row ${index > doneCount ? "pending-text" : ""}`} key={item.id}>
-                  <span className={`status-indicator ${index < doneCount ? "done" : index === doneCount ? "current" : "pending"}`}>
-                    {index < doneCount ? "✓" : index === doneCount ? "●" : ""}
-                  </span>
-                  <span style={index === doneCount ? { fontWeight: 600, color: "#1f2742" } : undefined}>{item.title}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="copilot-btn-group">
-            <button className="btn-primary-purple" onClick={() => onNavigate("results")}>
-              Review &amp; Get Results →
-            </button>
-            <button className="btn-secondary-light" onClick={() => onNavigate("plan")}>
-              Back to plan
-            </button>
-          </div>
+    <LoopShell view="execute" stage="STAGE 04 · FOLLOW THROUGH" subtitle="Move one commitment forward" back="plan" backLabel="Plan" onNavigate={onNavigate}>
+      {!goal ? <LoopEmptyState onNavigate={onNavigate} /> : <div className="phone-frame-content">
+        <div className="copilot-card">
+          <h3>{done} of {commitments.length} commitments completed</h3>
+          <p>Prepare a follow-up, review a deadline, or record work you have actually finished.</p>
+          <progress aria-label="Completed commitments" value={done} max={Math.max(1, commitments.length)} style={{ width: "100%" }} />
         </div>
-      )}
+        {error && <p role="alert" className="form-notice">{error}{loading && <button onClick={() => { setError(""); setReload(n => n + 1); }}>Retry loading</button>}</p>}
+        {loading && !error && <p>Loading saved commitments…</p>}
+        {commitments.map(item => <div className="copilot-card" key={item.id}>
+          <h4>{item.title}</h4><p>{item.due_date ? formatDue(item.due_date) : "No deadline"} · {item.status}</p>
+          <form onSubmit={event => {
+            event.preventDefault(); const fields = new FormData(event.currentTarget);
+            const date = fields.get("due");
+            update(item, { title: fields.get("title"), due_date: date ? new Date(date).toISOString() : null });
+          }}>
+            <label>Commitment<input name="title" defaultValue={item.title} required maxLength={300} disabled={busy || loading} /></label>
+            <label>Deadline ({Intl.DateTimeFormat().resolvedOptions().timeZone})<input name="due" type="datetime-local" defaultValue={item.due_date ? new Date(new Date(item.due_date).getTime() - new Date(item.due_date).getTimezoneOffset() * 60000).toISOString().slice(0,16) : ""} disabled={busy || loading} /></label>
+            <button className="btn-secondary-light" disabled={busy || loading}>Save changes</button>
+          </form>
+          <div className="copilot-btn-group">
+            <button className="btn-primary-purple" disabled={busy || loading} onClick={() => prepare(item)}>Prepare follow-up</button>
+            <button className="btn-secondary-light" disabled={busy || loading} onClick={() => update(item, { status: item.status === "done" ? "open" : "done" })}>{item.status === "done" ? "Reopen" : "I’ve completed this"}</button>
+            {item.status !== "done" && <button className="btn-secondary-light" disabled={busy || loading} onClick={() => update(item, { status: item.status === "waiting" ? "open" : "waiting" })}>{item.status === "waiting" ? "Resume" : "Waiting for someone"}</button>}
+          </div>
+        </div>)}
+        {draft && <div className="copilot-card"><h4>Your follow-up draft</h4><p>Review and edit before sending. Nothing has been sent.</p>
+          <textarea aria-label="Follow-up draft" rows={7} value={draft} onChange={e => setDraft(e.target.value)} style={{ width: "100%" }} />
+          <button className="btn-primary-purple" onClick={async () => { try { await navigator.clipboard.writeText(draft); setNotice("Copied. You can paste it into your conversation."); } catch { setNotice("Select and copy the draft above."); } }}>Copy draft</button>
+          <p role="status">{notice}</p>
+        </div>}
+        <button className="btn-primary-purple" disabled={loading || busy} onClick={() => onNavigate("results")}>Review saved progress →</button>
+      </div>}
     </LoopShell>
   );
 }
@@ -433,7 +449,6 @@ function ExecuteScreen({ onNavigate }) {
 function ResultsScreen({ onNavigate }) {
   const goal = getGoal();
   const commitments = goal?.commitments ?? [];
-  const [busy, setBusy] = useState(false);
 
   const handleDownload = () => {
     const rows = [
@@ -454,22 +469,6 @@ function ResultsScreen({ onNavigate }) {
     document.body.removeChild(link);
   };
 
-  const finalize = async () => {
-    setBusy(true);
-    try {
-      await Promise.all(
-        commitments
-          .filter((item) => item.status !== "done")
-          .map((item) =>
-            api(`/api/commitments/${item.id}`, { method: "PATCH", body: JSON.stringify({ status: "done" }) }).catch(() => null)
-          )
-      );
-      saveGoal({ ...goal, commitments: commitments.map((item) => ({ ...item, status: "done" })) });
-    } finally {
-      setBusy(false);
-      onNavigate("complete");
-    }
-  };
 
   return (
     <LoopShell view="results" stage="STAGE 05 · RESULTS" subtitle="Results" back="execute" backLabel="Execution" onNavigate={onNavigate}>
@@ -507,7 +506,7 @@ function ResultsScreen({ onNavigate }) {
                     <td style={{ fontWeight: 600 }}>{item.title}</td>
                     <td>{item.due_date ? formatDue(item.due_date) : "—"}</td>
                     <td style={{ color: item.status === "done" ? "#2ea163" : "#c8782a", fontWeight: 700 }}>
-                      {item.status === "done" ? "Done" : "Open"}
+                      {item.status === "done" ? "Done" : item.status === "waiting" ? "Waiting" : "Open"}
                     </td>
                   </tr>
                 ))}
@@ -519,8 +518,8 @@ function ResultsScreen({ onNavigate }) {
             <button className="btn-primary-purple" onClick={handleDownload}>
               Download results
             </button>
-            <button className="btn-secondary-light" onClick={finalize} disabled={busy}>
-              {busy ? "Saving..." : "Finalize & record →"}
+            <button className="btn-secondary-light" onClick={() => onNavigate("complete")}>
+              View progress summary →
             </button>
           </div>
         </div>
@@ -538,14 +537,14 @@ function TaskCompleteScreen({ onNavigate }) {
   const done = commitments.filter((item) => item.status === "done").length;
 
   return (
-    <LoopShell view="complete" stage="STAGE 06 · RECORD RESULT" subtitle="Task Complete" back="results" backLabel="Results" onNavigate={onNavigate}>
+    <LoopShell view="complete" stage="STAGE 06 · RECORD RESULT" subtitle="Progress saved" back="results" backLabel="Results" onNavigate={onNavigate}>
       {!goal ? (
         <LoopEmptyState onNavigate={onNavigate} />
       ) : (
         <div className="phone-frame-content">
           <div className="copilot-card complete-hero">
             <div className="complete-badge-ring">✓</div>
-            <h3 className="complete-title">{goal.title} completed.</h3>
+            <h3 className="complete-title">{done === commitments.length ? "All commitments completed." : "Your progress is saved."}</h3>
           </div>
 
           <div className="stats-tiles-grid">
@@ -568,7 +567,7 @@ function TaskCompleteScreen({ onNavigate }) {
               <h4 className="found-section-title">What you moved forward:</h4>
               <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "12px", color: "#323a54", lineHeight: "1.7" }}>
                 {commitments.map((item) => (
-                  <li key={item.id}>{item.title}</li>
+                  <li key={item.id}>{item.title} — {item.status}</li>
                 ))}
               </ul>
             </div>
@@ -608,6 +607,12 @@ function NudgesScreen({ onNavigate }) {
   const handleAction = async (id, action) => {
     setResolving((prev) => ({ ...prev, [id]: true }));
     try {
+      if (action === "primary") {
+        const nudge = nudges.find(n => n.id === id);
+        const result = await api(`/api/commitments/${nudge.commitmentId}`);
+        saveGoal({ title: result.commitment.title, commitments: [result.commitment], createdAt: result.commitment.created_at });
+        onNavigate("execute"); return;
+      }
       await api(`/api/nudges/${id}/action`, {
         method: "POST",
         body: JSON.stringify({ action: action === "secondary" ? "dismissed" : "resolved" }),
@@ -784,6 +789,15 @@ function ProjectsScreen({ onNavigate }) {
                       <h4 className="project-card-name">{proj.title}</h4>
                       <span className="project-due-tag">{dueLabel(proj)}</span>
                     </div>
+                    <button className="btn-secondary-light" onClick={async () => {
+                      try {
+                        const data = await api("/api/dashboard");
+                        const group = data.projects.find(p => p.rootCommitmentId === proj.id);
+                        if (!group) throw new Error("This project is no longer available.");
+                        saveGoal({ title: proj.title, commitments: group.commitments, createdAt: group.commitments[0].created_at });
+                        onNavigate("execute");
+                      } catch (err) { setError(err.message); }
+                    }}>Open project →</button>
                     <div className="project-bar-track">
                       <div
                         className="project-bar-fill"
@@ -932,7 +946,7 @@ function CommitmentCard({ label, title, meta, tone = "purple", project, onClick 
     >
       <div className="commitment-top">
         <span className="commitment-type">{label}</span>
-        <button>•••</button>
+        <button onClick={onClick} aria-label={`Open ${title}`}>Open →</button>
       </div>
       <h3>{title}</h3>
       {meta && <p>{meta}</p>}
@@ -1027,8 +1041,9 @@ const name = JSON.parse(localStorage.getItem("next-user") || "{}").name || "";
               key={item.id}
               label={item.type.toUpperCase()}
               title={item.title}
-              meta={item.due_date ? `Due ${new Date(item.due_date).toLocaleDateString()}` : "No date set"}
+              meta={item.due_date ? `Due ${formatDue(item.due_date)}` : "No date set"}
               tone="purple"
+              onClick={() => { saveGoal({ title: item.title, commitments: [item], createdAt: item.created_at }); onNavigate("execute"); }}
             />
           ))}
         </div>
@@ -1049,6 +1064,7 @@ const name = JSON.parse(localStorage.getItem("next-user") || "{}").name || "";
               title={item.title}
               meta={`Waiting since ${new Date(item.created_at).toLocaleDateString()}`}
               tone="pink"
+              onClick={() => { saveGoal({ title: item.title, commitments: [item], createdAt: item.created_at }); onNavigate("execute"); }}
             />
           ))}
         </div>
@@ -1282,7 +1298,7 @@ function Chat({ onNavigate }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".txt,.md,.csv,.json,.log,.pdf,image/*"
+              accept=".txt,.md,.csv,.pdf,.png,.jpg,.jpeg,.webp"
               style={{ display: "none" }}
               onChange={attachFile}
             />
@@ -1314,6 +1330,7 @@ function Chat({ onNavigate }) {
 function Settings({ onNavigate }) {
   const [level, setLevel] = useState(() => localStorage.getItem("next-proactivity-level") || "balanced");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     api("/api/settings")
@@ -1325,14 +1342,14 @@ function Settings({ onNavigate }) {
   }, []);
 
   const updateLevel = async (value) => {
-    setLevel(value);
+    setSaving(true);
     setError("");
-    localStorage.setItem("next-proactivity-level", value);
     try {
       await api("/api/settings", { method: "PATCH", body: JSON.stringify({ proactivity_level: value }) });
+      setLevel(value); localStorage.setItem("next-proactivity-level", value);
     } catch (err) {
       setError(err.message);
-    }
+    } finally { setSaving(false); }
   };
 
   const copy = {
@@ -1351,7 +1368,7 @@ function Settings({ onNavigate }) {
         <p className="section-label">SETTINGS</p>
         <h1>How proactive should NEXT Africa be?</h1>
         <p className="settings-intro">
-          Choose how often you’d like NEXT Africa to check in and follow up. You can change this whenever you need.
+          Choose how early commitments appear in your reminders. Quiet: 24 hours; balanced: 2 days; active: 7 days. Waiting follow-ups begin after 2 days on balanced or 1 day on active.
         </p>
         <div className="proactivity-control">
           <div className="level-track">
@@ -1367,6 +1384,7 @@ function Settings({ onNavigate }) {
               <button
                 key={item}
                 className={level === item ? "selected" : ""}
+                disabled={saving}
                 onClick={() => updateLevel(item)}
               >
                 <span className="level-radio"></span>
@@ -1377,13 +1395,13 @@ function Settings({ onNavigate }) {
           </div>
           {error && <p className="form-notice">{error}</p>}
         </div>
+        <ReminderSettings />
         <div className="settings-note">
           <span>✦</span>
           <p>
             <b>Your rhythm, your rules.</b>
             <br />
-            NEXT Africa will always surface commitments due soon — this only changes the extra follow-ups
-              around them.
+            Overdue commitments remain visible. Background reminders are opt-in, with at most one daily summary per device.
           </p>
         </div>
       </section>
@@ -1425,6 +1443,9 @@ function AuthPage({ onBack, onAuthenticated }) {
       localStorage.setItem("next-user", JSON.stringify(result.user));
       localStorage.setItem("next-user-id", result.user.id);
       localStorage.setItem("next-proactivity-level", result.user.proactivity_level);
+      localStorage.removeItem("next-goal");
+      const settings = await api("/api/settings");
+      localStorage.setItem("next-timezone", settings.timezone);
       onAuthenticated();
     } catch (error) {
       setNotice(error.message);
@@ -1485,20 +1506,6 @@ function AuthPage({ onBack, onAuthenticated }) {
               <p>{subtitle}</p>
             </div>
           </div>
-          {!isReset && (
-            <button
-              className="google-button"
-              type="button"
-              onClick={() => setNotice("Google sign-in is ready to connect.")}
-            >
-              <span className="google-icon">G</span> Continue with Google
-            </button>
-          )}
-          {!isReset && (
-            <div className="divider">
-              <span>or continue with email</span>
-            </div>
-          )}
           <form onSubmit={submit}>
             {!isReset && !isSignIn && (
               <label>
@@ -1615,7 +1622,7 @@ function PhoneMockup() {
 }
 
 export default function App() {
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(() => new URLSearchParams(window.location.search).get("view") === "nudges" ? (localStorage.getItem("next-token") ? "nudges" : "auth") : "home");
 
   const getStarted = () => {
     setPage("auth");
@@ -1628,7 +1635,7 @@ export default function App() {
   };
 
   const screens = {
-    auth: <AuthPage onBack={() => navigate("home")} onAuthenticated={() => navigate("dashboard")} />,
+    auth: <AuthPage onBack={() => navigate("home")} onAuthenticated={() => navigate(new URLSearchParams(window.location.search).get("view") === "nudges" ? "nudges" : "dashboard")} />,
     dashboard: <Dashboard onNavigate={navigate} />,
     chat: <Chat onNavigate={navigate} />,
     settings: <Settings onNavigate={navigate} />,
@@ -1678,9 +1685,9 @@ export default function App() {
             <h1>
               You tell me what
               <br />
-              matters. <em>I make sure</em>
+              matters. <em>I help make</em>
               <br />
-              it happens.
+              it happen.
             </h1>
             <p className="subcopy">
 NEXT Africa turns the things you say into the things you do. Just message naturally — your commitments become
@@ -1721,7 +1728,7 @@ NEXT Africa turns the things you say into the things you do. Just message natura
           <div className="floating-note note-one">
             <span>✓</span>
             <div>
-              <b>Proposal sent</b>
+              <b>Proposal ready to review</b>
               <small>Ready before the meeting</small>
             </div>
           </div>
@@ -1729,7 +1736,7 @@ NEXT Africa turns the things you say into the things you do. Just message natura
             <span>✦</span>
             <div>
               <b>Nothing slips through</b>
-              <small>NEXT Africa follows up for you</small>
+              <small>Keep your next follow-up in view</small>
             </div>
           </div>
         </div>
@@ -1787,7 +1794,7 @@ NEXT Africa turns the things you say into the things you do. Just message natura
           <p>
             It arrives in WhatsApp chats, voice notes, screenshots and forwarded PDFs. NEXT Africa is mobile-first,
             low-data,
-            and understands the currencies and time zones you live in.
+            and keeps deadlines in your local timezone.
           </p>
           <div className="country-row">
             <span>₦ Nigeria</span>

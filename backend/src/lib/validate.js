@@ -18,28 +18,38 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required").max(200),
 });
 
+const timezone = z.string().max(100).refine((value) => {
+  try { new Intl.DateTimeFormat("en", { timeZone: value }); return true; } catch { return false; }
+}, "Choose a valid timezone").optional();
+
 export const captureTextSchema = z.object({
   text: z.string().trim().min(1, "text is required").max(20_000),
+  timezone,
 });
 
 export const captureFileSchema = z.object({
+  timezone,
   filename: z.string().trim().min(1, "filename is required").max(300),
   content_base64: z.string().min(1, "content_base64 is required"),
 });
 
 export const captureVoiceSchema = z.object({
+  timezone,
   audio_base64: z.string().min(1, "audio_base64 is required"),
   mime_type: z.string().max(120).optional(),
 });
 
 export const commitmentStatusSchema = z.object({
-  status: z.enum(["open", "waiting", "done"], { message: "status must be open, waiting, or done" }),
+  status: z.enum(["open", "waiting", "done"]).optional(),
+  title: z.string().trim().min(1).max(300).optional(),
+  due_date: z.iso.datetime({ offset: true }).nullable().optional(),
 });
 
 export const settingsSchema = z.object({
+  timezone,
   proactivity_level: z.enum(["quiet", "balanced", "active"], {
     message: "proactivity_level must be quiet, balanced, or active",
-  }),
+  }).optional(),
 });
 
 export const nudgeActionSchema = z.object({

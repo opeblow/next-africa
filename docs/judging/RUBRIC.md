@@ -15,9 +15,9 @@ originality/innovation 20%.
 | --- | --- | --- |
 | It actually works end to end | Full-stack: React SPA + Express API + Postgres. Text, file, and voice input all persist structured commitments and power Today/Projects/Nudges/Insights. | Run the app; smoke tests in `frontend/e2e` |
 | Data is safe and consistent | Capture runs inside one transaction; a bad LLM response can never corrupt data. Password hashing (bcrypt, cost 12). Parameterised SQL only. | `backend/src/db/pool.js`, capture in `backend/src/app.js` |
-| The AI layer is robust | Forced tool-call schema, UTC-stamped prompt for relative dates, timeout + bounded retries, graceful fallback when the key/model is missing. | `backend/src/llm/extract.js`, `assertEnv` in `backend/src/config.js` |
+| The AI layer is robust | Forced tool-call schema, UTC-stamped prompt for relative dates, timeout + bounded retries, clear unavailable response when the key/model is missing. | `backend/src/llm/extract.js`, `assertEnv` in `backend/src/config.js` |
 | Production-grade HTTP | Helmet headers, CORS allowlist, per-route rate limits, Zod validation with `400` shapes, request ids, structured pino logs. | `backend/src/app.js`, six spec tests in `backend/test/api.test.js` |
-| It is genuinely testable | 17 automated tests (`npm test`), coverage command, Playwright smoke suite, one-command readiness check. | `npm run verify` |
+| It is genuinely testable | Automated backend regression tests (`npm test`), coverage command, Playwright smoke suite, one-command readiness check. | `npm run verify` |
 | It deploys, not just runs on a laptop | CI (lint + tests + build) and CD (Cloudflare Pages + backend artifact) already defined; migrations run on boot. | `.github/workflows/` |
 | It will not break at 5x users | Keyset pagination (stable cursor), composite indexes, prepared statements, connection pooling. | `backend/src/lib/pagination.js`, `backend/migrations/0002_*` |
 | Observability | Liveness/readiness probes, request ids on every response, log redaction of `password*`, health endpoint reports DB state. | `GET /api/live`, `GET /api/ready`, `GET /api/health` |
@@ -61,14 +61,14 @@ Three claims, each with proof. See `docs/INNOVATION.md`.
    to-do lists within one session; we assemble projects across sessions.)
 2. **Explicit conflict catching** — the capture pipeline detects overlapping
    deadlines/meetings and writes a nudge at the moment the conflict is created.
-3. **A personality that tunes itself** — `proactivity_level` (quiet/balanced/
+3. **User-controlled reminder preferences** — `proactivity_level` (quiet/balanced/
    active) actually changes how aggressively the product nudges you, from a
    first-class settings screen. (Personalization by behaviour, not by skin.)
 
 **The one-sentence proof:** "Other teammates will demo 'LLM turns text into a
 to-do list.' Our second commitment from a later message becomes part of the
 same project, our clash is caught before it costs a client, and the product
-adjusts its own pushiness — the difference between a to-do list and a copilot."
+uses the selected reminder preference — the difference between a to-do list and a copilot."
 
 ---
 
@@ -76,7 +76,7 @@ adjusts its own pushiness — the difference between a to-do list and a copilot.
 
 | Criterion | Weight | Where we win | Gap we must not create |
 | --- | --- | --- | --- |
-| Technical execution | 35% | 17 tests, transactions, security, pagination, CI/CD, observability | Demo flakiness (fixed by backup video) |
+| Technical execution | 35% | Regression tests, transactions, security, pagination, CI/CD, observability | Demo flakiness (fixed by backup video) |
 | Problem fit | 25% | Africa-first, WhatsApp/voice native, mobile, low-data | Do not pitch generic "task manager" language |
 | Demo/communication | 20% | Scripted 3:00, real numbers, closed loop | Run over time (keep the clock visible) |
 | Originality/innovation | 20% | Linking, conflict nudges, proactivity level | Forgetting to claim them out loud |

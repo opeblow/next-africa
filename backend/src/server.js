@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { startReminders } from "./lib/push.js";
 import { app } from "./app.js";
 import { ensureSchema } from "./db/schema.js";
 import { pool } from "./db/pool.js";
@@ -34,10 +35,12 @@ const server = app.listen(config.port, () => {
   logger.info({ port: config.port, env: config.nodeEnv }, "NEXT Africa backend listening");
 });
 
+const stopReminders = startReminders();
 let shuttingDown = false;
 async function shutdown(signal) {
   if (shuttingDown) return;
   shuttingDown = true;
+  stopReminders();
   logger.info({ signal }, "shutting down");
   const force = setTimeout(() => process.exit(1), 10_000);
   force.unref();

@@ -2,6 +2,7 @@ export function formatDue(value) {
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return "";
   return date.toLocaleString(undefined, {
+    timeZone: localStorage.getItem("next-timezone") || Intl.DateTimeFormat().resolvedOptions().timeZone,
     weekday: "short",
     month: "short",
     day: "numeric",

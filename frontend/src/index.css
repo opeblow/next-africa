@@ -1181,3 +1181,9 @@
   }
 }
 
+
+/* Follow-through workspace: readable forms with touch-sized controls. */
+.copilot-card label { display: block; margin: 12px 0; font-size: 13px; }
+.copilot-card input, .copilot-card select, .copilot-card textarea { display: block; width: 100%; box-sizing: border-box; border: 1px solid #d7d4e8; border-radius: 8px; padding: 10px; margin-top: 6px; background: white; color: #222a44; font: inherit; }
+.copilot-card button:disabled { opacity: .55; cursor: wait; }
+.copilot-btn-group { flex-wrap: wrap; }

@@ -5,7 +5,7 @@ proposal before the Thursday meeting", "remind me to follow up with Dana") into
 structured **commitments** — then helps you actually finish them.
 
 Built for the **Borderless Bytes Hackathon** and designed Africa-first: mobile-first,
-low-data, WhatsApp-native, and honest about the way work really arrives.
+low-data, designed for pasted conversations, and honest about the way work really arrives.
 
 <p align="center">
   <img src="./docs/assets/002-hero.gif" alt="NEXT Africa hero — the repeatedly shown promise, captured and followed through" width="640" />
@@ -29,6 +29,39 @@ low-data, WhatsApp-native, and honest about the way work really arrives.
 </p>
 
 ---
+
+## Current implementation
+
+The follow-through workspace records real progress: review and edit each commitment,
+prepare an editable follow-up draft, and explicitly mark work done or waiting.
+There is no autonomous task execution or message sending. Progress is based on saved
+statuses, never a timer. Drafts require review and remain unsent.
+
+Capture supplies up to 100 recent unfinished commitments as private context and uses
+owned IDs for cross-message linking. Dates use the timezone selected in Settings
+(default Africa/Lagos). The Today board ends at local midnight; deadline editing
+labels the browser timezone explicitly.
+
+Supported attachments: text PDFs (up to 20 pages), PNG/JPEG/WebP images, TXT, Markdown
+and CSV. Maximum 8 MB; text is limited to 20,000 characters. Scanned PDFs should be
+submitted as page screenshots. Images use the model's vision input. Voice uses
+transcription followed by the same contextual capture pipeline.
+
+Reminder settings affect due windows (quiet 24h, balanced 48h, active 7 days) and
+waiting follow-ups (none, after 48h, after 24h). “Remind me tomorrow” snoozes for 24h.
+Opt-in Web Push sends a private daily summary, with durable delivery records and
+retry on delivery failure. Browser/device support and notification permission are
+required. This is not a guaranteed alarm service.
+
+For push, generate VAPID keys with `npx web-push generate-vapid-keys` and configure
+`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (your public HTTPS URL or
+contact mailto address) in the backend environment. Keep keys stable between restarts.
+Enable reminders in Settings. The backend worker runs every minute; no task details
+are included in lock-screen notifications. Google sign-in is not offered.
+
+Live AI validation requires your own `OPENAI_API_KEY`; automated tests stub external
+AI and push calls. PDF parsing, database persistence, preference behavior and delivery
+deduplication are covered locally. Never present mocked calls as a live AI demo.
 
 ## Documentation
 
@@ -113,10 +146,8 @@ across WhatsApp groups, SMS and calls — so nothing needs to be remembered by h
 
 <img src="./docs/assets/005-execute.gif" alt="Executing a plan step by step with live progress" width="640" />
 
-NEXT Africa runs your goal as a guided loop — the plan you approved, worked
-through with live progress. This is where sipped commitments stop: instead of a
-"will do later" sentence that quietly dies in a thread, the loop completes the
-steps, one after another.
+NEXT Africa gives you a workspace to edit deadlines, prepare follow-ups and record
+completion. It never claims to have performed real-world work on your behalf.
 
 ### 4. Proactive nudges — it follows up so you don't have to
 
@@ -143,7 +174,7 @@ views that keep commitments moving.
 ## Product flow
 
 You message naturally → NEXT Africa understands → it structures the commitment
-→ you approve the plan → it executes with live progress → nothing quietly
+→ you approve the plan → you follow through and record real progress → nothing quietly
 disappears.
 
 <img src="./docs/assets/012-product-flow-chart.png" alt="Product flow chart: message, understanding, structure, approval, execution, outcome" width="640" />

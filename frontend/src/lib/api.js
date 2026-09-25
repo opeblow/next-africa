@@ -10,7 +10,7 @@ export async function api(path, options = {}) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
-  });
+  }).catch(() => { throw new Error("Could not reach NEXT Africa. Check your connection and try again; your last saved progress is unchanged."); });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.error || "Something went wrong");
   return body;

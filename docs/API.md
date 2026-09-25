@@ -39,3 +39,18 @@ Send `Authorization: Bearer <token>` on every route except `/api/health`,
 Errors are JSON: `{ "error": string, "issues"?: [{ "path", "message" }], "requestId"?: string }`.
 Validation failures return `400`; auth `401`; missing resources `404`; oversized
 payloads `413`; unconfigured AI `503`; unexpected failures `500`.
+
+## Follow-through additions
+
+- `GET /api/commitments/:id`: read an owned item.
+- `PATCH /api/commitments/:id`: optional `status`, `title`, `due_date` (ISO with offset or null).
+- `POST /api/commitments/:id/draft`: editable follow-up text; always `sent: false`.
+- `GET/PATCH /api/settings`: `timezone` (IANA identifier) and `proactivity_level`.
+- Capture routes accept optional `timezone`, otherwise use the saved preference.
+- `GET /api/notifications/config`: availability and public VAPID key.
+- `POST /api/notifications/subscribe`: browser subscription (`endpoint`, `keys`).
+- `POST /api/notifications/unsubscribe`: remove the caller's `endpoint`.
+- Nudge `dismissed` now means a 24-hour snooze; primary UI actions open the commitment.
+
+The background worker shares the same nudge policy as the API, retries failed deliveries,
+and stores delivery receipts in PostgreSQL. Keep the backend and database running.
