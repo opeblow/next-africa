@@ -16,6 +16,7 @@ low-data, designed for pasted conversations, and honest about the way work reall
 
 <!-- The repo owner is "opeblow". Keep the two URLs below in sync. -->
 <p align="center">
+  <a href="https://youtu.be/biDLEFhlyhE"><img src="https://img.shields.io/badge/▶%20Demo%20Video-ff0000.svg?logo=youtube&logoColor=white" alt="Watch the demo video" /></a>
   <a href="https://github.com/opeblow/next-africa/actions/workflows/ci.yml"><img src="https://github.com/opeblow/next-africa/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-5c4de2.svg" alt="License: MIT" /></a>
   <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" /></a>
