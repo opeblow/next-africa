@@ -7,18 +7,34 @@ structured **commitments** — then helps you actually finish them.
 Built for the **Borderless Bytes Hackathon** and designed Africa-first: mobile-first,
 low-data, designed for pasted conversations, and honest about the way work really arrives.
 
+## Demo Video
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=biDLEFhlyhE">
+    <img src="https://img.youtube.com/vi/biDLEFhlyhE/maxresdefault.jpg" alt="Watch the NEXT Africa demo video" width="640" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=biDLEFhlyhE"><strong>▶ Watch the demo video on YouTube</strong></a>
+</p>
+
+<iframe
+  width="640"
+  height="360"
+  src="https://www.youtube.com/embed/biDLEFhlyhE"
+  title="NEXT Africa demo video"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowfullscreen
+></iframe>
+
 <p align="center">
   <img src="./docs/assets/002-hero.gif" alt="NEXT Africa hero — the repeatedly shown promise, captured and followed through" width="640" />
 </p>
 
 > **The promise in one line:** tell NEXT Africa what matters in the same words
 > you'd use in a WhatsApp message — it makes sure it actually happens.
-
-## Watch the demo
-
-[![Watch the demo video](https://img.youtube.com/vi/biDLEFhlyhE/0.jpg)](https://www.youtube.com/watch?v=biDLEFhlyhE)
-
-**[▶ Watch the demo video on YouTube](https://www.youtube.com/watch?v=biDLEFhlyhE)**
 
 <!-- The repo owner is "opeblow". Keep the two URLs below in sync. -->
 <p align="center">
@@ -507,29 +523,6 @@ claiming, and the split is confirmed in writing by both members.
 
 - **Repo:** <https://github.com/opeblow/next-africa>
 - **Contacts:** Mobolaji Opeyemi Bolatito (Developer) · Oluwatamilore Paul Olubanwo (Product Manager)
-
-## Demo Video
-
-<p align="center">
-  <a href="https://youtu.be/biDLEFhlyhE">
-    <img src="https://img.youtube.com/vi/biDLEFhlyhE/maxresdefault.jpg" alt="NEXT Africa demo video thumbnail" width="640" />
-  </a>
-</p>
-
-**[▶ Watch the demo on YouTube](https://youtu.be/biDLEFhlyhE)**
-
-<iframe
-  width="720"
-  height="405"
-  src="https://www.youtube.com/embed/biDLEFhlyhE"
-  title="NEXT Africa demo video"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowfullscreen
-></iframe>
-
-The walkthrough follows the demo script: capture a promise → the dashboard → the
-nudges → projects → insights. Script: [`docs/DEMO-SCRIPT.md`](./docs/DEMO-SCRIPT.md).
 
 ## Contributing
 
