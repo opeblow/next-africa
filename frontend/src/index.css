@@ -1187,3 +1187,111 @@
 .copilot-card input, .copilot-card select, .copilot-card textarea { display: block; width: 100%; box-sizing: border-box; border: 1px solid #d7d4e8; border-radius: 8px; padding: 10px; margin-top: 6px; background: white; color: #222a44; font: inherit; }
 .copilot-card button:disabled { opacity: .55; cursor: wait; }
 .copilot-btn-group { flex-wrap: wrap; }
+
+/* =========================================================
+   Phone pass 3 - cascade, overflow, legibility, iOS zoom
+   ========================================================= */
+
+/* The marketing nav's collapse rule lives inside a minified block earlier in
+   this file. A later `.nav-links{display:flex}` beat it because media queries
+   add no specificity, so the links never hid and pushed the CTA off-screen.
+   Re-asserting it in the final block wins the cascade. */
+.nav-links { display: none; }
+.nav-cta { flex: 0 0 auto; margin-left: auto; }
+
+@media (max-width: 800px) {
+  /* iOS zooms any input with a computed font-size under 16px on focus. */
+  form input,
+  form select,
+  form textarea,
+  .capture-box textarea,
+  .copilot-card input,
+  .copilot-card select,
+  .copilot-card textarea {
+    font-size: 16px;
+  }
+
+  /* The stepper is a 6-step flex row that ran ~410px past the right edge. */
+  .loop-stepper {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .loop-stepper::-webkit-scrollbar { display: none; }
+  .loop-step-btn {
+    white-space: nowrap;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .loop-step-arrow { flex: 0 0 auto; }
+
+  /* Landing hero: let the phone mockup render at a believable size instead
+     of being crushed into a 240px column of 7px text. */
+  .phone-wrap { max-width: 340px; }
+  .pill { font-size: 11px; }
+}
+
+@media (max-width: 700px) {
+  /* Fit all four destinations in view - "Nudges" was scrolled off-screen. */
+  .app-nav { padding: 0 12px; gap: 6px; }
+  .app-nav nav { gap: 4px; }
+  .app-nav nav button {
+    font-size: 11px;
+    padding: 6px 7px;
+    letter-spacing: -0.1px;
+  }
+  .app-nav .brand { font-size: 14px; }
+  .profile-button { font-size: 11px; }
+
+  /* 8-10px labels are unreadable on a phone. Floor them at 12px. */
+  .commitment-type,
+  .column-head b,
+  .project-chip,
+  .extracted-item small,
+  .section-label,
+  .copilot-stage-badge,
+  .project-due-tag,
+  .thread-date,
+  .loop-sub,
+  .settings-note p,
+  .nudge-btn-primary {
+    font-size: 12px;
+  }
+  .loop-step-btn { font-size: 12px; }
+
+  /* Auth form: labels and helper text were 9-11px. */
+  form label,
+  .password-label,
+  .auth-switch,
+  .auth-switch button,
+  .terms {
+    font-size: 13px;
+  }
+
+  /* Tap targets under 44px. */
+  .text-link,
+  .copilot-back-btn,
+  .settings-back,
+  .back-link,
+  .auth-switch button,
+  .brand-button,
+  .text-link,
+  footer a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .phone-wrap {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    margin: 28px auto 0;
+  }
+  .app-nav nav button { font-size: 10.5px; padding: 6px 5px; }
+}
+
