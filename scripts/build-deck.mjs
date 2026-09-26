@@ -103,7 +103,7 @@ function heading(slide, kicker, title, sub) {
     x: M, y: 0.5, w: 8, h: 0.3, fontSize: 10.5, bold: true, color: PURPLE, charSpacing: 1.6, fontFace: FONT,
   });
   slide.addText(title, { x: M, y: 0.82, w: 11.4, h: 0.72, fontSize: 30, bold: true, color: INK, fontFace: FONT });
-  if (sub) slide.addText(sub, { x: M, y: 1.55, w: 10.9, h: 0.42, fontSize: 13, color: MUTED, fontFace: FONT });
+  if (sub) slide.addText(sub, { x: M, y: 1.55, w: 10.9, h: 0.62, fontSize: 13, color: MUTED, fontFace: FONT });
   slide.addShape(pres.ShapeType.line, {
     x: M, y: 1.5, w: 0.9, h: 0, line: { color: PURPLE, width: 2.5 },
   });
@@ -205,11 +205,11 @@ function shotSlide({ kicker, title, sub, file, points, box }) {
     x: M + 0.35, y: 2.25, w: 10.9, h: 1.15, fontSize: 15, italic: true, color: "463C9E", valign: "middle", fontFace: FONT,
   });
   cards(s, [
-    { title: "Calendar-first apps", body: "Assume you block time deliberately. Most African work is reactive and negotiated in the moment." },
-    { title: "Task managers", body: "Assume a desktop and stable bandwidth. Data cost and patchy signal are real constraints." },
-    { title: "Email workflows", body: "Assume email is the record of work. WhatsApp threads and voice notes carry the actual load." },
-    { title: "Enterprise PM tools", body: "Priced for salaried teams. Our users are students, freelancers, traders and solo operators." },
-  ], { y: 3.75, h: 1.15, cols: 2 });
+    { title: "Calendar-first apps", body: "Assume you block time deliberately. Our users negotiate the day in the moment." },
+    { title: "Task managers", body: "Assume a desktop and steady bandwidth. Data cost and patchy signal are real." },
+    { title: "Email workflows", body: "Assume email is the record of work. Threads and voice notes carry the load." },
+    { title: "Enterprise PM tools", body: "Priced for salaried teams. Our users are students, traders and solo operators." },
+  ], { y: 3.6, h: 1.32, cols: 2 });
   s.addNotes("Existing tools were not built for this user. None of them start from a WhatsApp message.");
 }
 
