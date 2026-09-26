@@ -376,6 +376,13 @@ test("probes, API spec, docs, security headers, and unknown routes respond clean
   const docsRes = await realFetch(`${base}/api/docs`);
   assert.equal(docsRes.status, 200);
   assert.match(docsRes.headers.get("content-type"), /text\/html/);
+  const docsHtml = await docsRes.text();
+  assert.match(docsHtml, /<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/);
+
+  const faviconRes = await realFetch(`${base}/favicon.svg`);
+  assert.equal(faviconRes.status, 200);
+  assert.match(faviconRes.headers.get("content-type"), /svg/);
+  assert.match(await faviconRes.text(), /<svg/);
 
   const root = await api("/");
   assert.equal(root.status, 200);

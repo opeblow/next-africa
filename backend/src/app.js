@@ -4,6 +4,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { pool, query } from "./db/pool.js";
 import { config } from "./config.js";
 import { requireAuth } from "./middleware/auth.js";
@@ -44,6 +46,9 @@ app.use(cors(config.cors.origins.length ? { origin: config.cors.origins } : {}))
 app.use(express.json({ limit: "15mb" }));
 app.use(requestId);
 app.use(requestLogger);
+
+const publicDir = path.resolve(fileURLToPath(new URL("../public", import.meta.url)));
+app.use(express.static(publicDir, { index: false, maxAge: "1d" }));
 
 const noLimit = (_req, _res, next) => next();
 function limiter(max) {

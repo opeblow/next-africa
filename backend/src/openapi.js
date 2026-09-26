@@ -224,10 +224,16 @@ export const openapiSpec = {
 
 export function redocHtml(title = "NEXT Africa API") {
   return `<!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#5c4de2" />
+    <meta name="description" content="Interactive reference for the NEXT Africa API." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#5c4de2" />
     <title>${title} — Reference</title>
     <style>body { margin: 0; padding: 0; }</style>
   </head>
