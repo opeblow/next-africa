@@ -2,7 +2,7 @@
 
 ## Demo Video
 
-**[▶ Watch demo video](https://www.youtube.com/watch?v=biDLEFhlyhE)**
+**[▶ Watch demo video](https://youtu.be/hCpJ5efwuLU)**
 
 NEXT Africa turns the messy, natural-language promises of everyday life ("send the
 proposal before the Thursday meeting", "remind me to follow up with Dana") into
