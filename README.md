@@ -77,6 +77,7 @@ deduplication are covered locally. Never present mocked calls as a live AI demo.
 | [`docs/INNOVATION.md`](./docs/INNOVATION.md) | The three originality claims, each with code proof |
 | [`docs/judging/RUBRIC.md`](./docs/judging/RUBRIC.md) | Evidence map against the published judging rubric |
 | [`docs/DEMO-SCRIPT.md`](./docs/DEMO-SCRIPT.md) | The 3-minute winning demo script |
+| [`docs/NEXT-Africa-Deck.pptx`](./docs/NEXT-Africa-Deck.pptx) | Judging slide deck (15 slides, screenshots of every screen) |
 | [`docs/adr/`](./docs/adr) | Architecture decision records |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Setup, branch/commit conventions, PR checklist |
 | [`CHANGELOG.md`](./CHANGELOG.md) | Notable changes |
