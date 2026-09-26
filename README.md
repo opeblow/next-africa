@@ -4,6 +4,18 @@
 
 **[▶ Watch demo video](https://youtu.be/hCpJ5efwuLU)**
 
+## Live App
+
+**[Open the live app](https://next-africa.pages.dev)**
+
+<https://next-africa.pages.dev>
+
+## Live API
+
+**[Open the API server](https://next-africa.onrender.com)** — **[Open the interactive API docs](https://next-africa.onrender.com/api/docs)**
+
+<https://next-africa.onrender.com/api/docs>
+
 NEXT Africa turns the messy, natural-language promises of everyday life ("send the
 proposal before the Thursday meeting", "remind me to follow up with Dana") into
 structured **commitments** — then helps you actually finish them.
